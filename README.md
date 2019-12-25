@@ -192,24 +192,27 @@ Credit to u/ASentientBot
 
 * Lilu won't load.
    * This means Lilu has not been updated for Catalina, either update [Lilu](https://github.com/acidanthera/Lilu/releases) or add flag `-lilubetaall`.
+    * Lilu has been updated for Catalina. ALWAYS UPDATE YOUT KEXTS.
 * ~~It doesn't fill the void within you~~
    * ~~2 parts Green Apple Vodka, 1 part Clorox. Repeat every 15 min~~
 * Stalling on `kextd stall[0]: AppleACPICPU`.
    * SMC emulator isn't loading, make sure VirtualSMC and Lilu are updated. Temporary solution is `-lilubetaall`, update your kexts or swap for [FakeSMC](https://bitbucket.org/RehabMan/os-x-fakesmc-kozlek/downloads/)
 * Can't write to Library/Extensions to add my kexts.
    * While quite rare to need kexts in L/E, for those needing to do so can run `sudo mount -uw /` to mount the drive for read/write.
+     * Not working starting from 10.15.1
 * Stalling on `apfs_module_start...`, `Waiting for Root device`, `Waiting on...IOResources...`, `previous shutdown cause...`
    * So with macOS catalina, there were some changes in how AppleACPIEC works which makes it so when it doesn't pass the checks and therefore stall. Specifically the Embedded Controller(EC) has new processes happen to it:
 
 1. AppleACPIPlatform.kext loads and sets all devices with the ACPI name of `EC__` and device `PNP0C09` the property of `boot-ec`
 2. It then hands off control to its plugin, AppleACPIEC.kext, and starts a probe for either `PNP0C09` or `boot-ec`
-3. When loaded, it will then verify for the other meaning we must have both `PNP0C09` and `boot-ec`. If not, macOS will just get stuck but due to the nature of parallel kext loading we don't explicitly see the error instead seeing errors such as `apfs_module_start...`, `Waiting for Root device`, `Waiting on...IOResources...`, `previous shutdown cause...`, etc. And guess what, PCs don't have their embedded controller named `EC__` instead known by `EC0_`, `H_EC` or `ECDV`.
+3. When loaded, it will then verify for the other meaning we must have both `PNP0C09` and `boot-ec`. If not, macOS will just get stuck but due to the nature of parallel kext loading we don't explicitly see the error instead seeing errors such as `apfs_module_start...`, `Waiting for Root device`, `Waiting on...IOResources...`, `previous shutdown cause...`, etc. And guess what, PCs don't have their embedded controller named `EC__` (usually, some do) instead known by `EC0_`, `H_EC` or `ECDV`.
 
 To get around these problems, we have a couple options:
 
 * Block `com.apple.driver.AppleACPIEC`.
    * AppleACPIEC is used on laptops so blocking it can cause serious issues but on desktops there is no issue. Problem is this requires OpenCore and currently there re bugs with it: [OC kext blocker not working](https://github.com/acidanthera/bugtracker/issues/497)
-* Turn off your real EC and set a fake EC(we still need an EC present for AppleBusPower).
+   * Not recommended for laptops because they need it for different hotkey and battery reading.
+* Turn off your real EC and set a fake EC (we still need an EC present for AppleBusPower).
    * Recommended method for desktops, can severly screw up laptops.
       * [SSDTTime](https://github.com/corpnewt/SSDTTime)(Use this for when you have access to the systems DSDT, `F4` at Clover scrren will dump it to EFI/CLOVER/ACPI/origin. Easiest and recommenced way to setup EC, only way for AMD CPU users)
       * [USBmap](https://github.com/corpnewt/USBMap)(Some may already have an SSDT-EC in their EFI if they ran USBmap sometime after Nov 18, 2018)
@@ -292,7 +295,9 @@ But AptioMemoryFix won't be gong anywhere thankfully, you can still download the
 
 >Are there alternatives?
 
-Not really, your other option being osxaptiofix3drv but that's not ideal for many people. As things stand, AptioMemoryFix still works perfectly fine but do note that for both future releases of macOS and newer hardware may not work correctly with AptioMemoryFix
+~~Not really, your other option being osxaptiofix3drv but that's not ideal for many people. As things stand, AptioMemoryFix still works perfectly fine but do note that for both future releases of macOS and newer hardware may not work correctly with AptioMemoryFix~~
+
+Yes! Introducing FwRuntimeServices + OcQuirks. Use the latest version of [FwRuntimeServices](https://github.com/acidanthera/AppleSupportPkg/releases/latest) and add with it [OcQuirks](https://github.com/ReddestDream/OcQuirks) that mimics OpenCore Quirks model. Follow the instructions given.
 
 **Clover folder structre changes**
 
@@ -307,19 +312,21 @@ But do not fret, the old paths will still work as long as there's no files prese
 
 **Where's the Navi support?**
 
-Well just like with Mojave, talks of Navi support is sparce. Within the AMDRadeonX5000HWServices.kext, we can see 3 kexts that hint at full Navi line up support:
+~~Well just like with Mojave, talks of Navi support is sparce. Within the AMDRadeonX5000HWServices.kext, we can see 3 kexts that hint at full Navi line up support:~~
 
-* AMDRadeonX5100HWLibs.kext
-* AMDRadeonX5400HWLibs.kext
-* AMDRadeonX5700HWLibs.kext
+~~* AMDRadeonX5100HWLibs.kext~~
+~~* AMDRadeonX5400HWLibs.kext~~
+~~* AMDRadeonX5700HWLibs.kext~~
 
-When taking a deeper look into these kexts, they show us that the code is only partially there requiring a master kext to handle them like an AMDRadeonX6000HWServices.kext. What early Polaris/Vega drivers have shown us before is that we might be waiting until either the end of this year or early next before we get support for Navi. At that point, we might be seeing Navi 20 which might finally come around to beat the pure compute champ that is Vega 20(Radeon VII). But then there's rumblings of Vega 30 so who knows. ¯\_(ツ)\_/¯
+~~When taking a deeper look into these kexts, they show us that the code is only partially there requiring a master kext to handle them like an AMDRadeonX6000HWServices.kext. What early Polaris/Vega drivers have shown us before is that we might be waiting until either the end of this year or early next before we get support for Navi. At that point, we might be seeing Navi 20 which might finally come around to beat the pure compute champ that is Vega 20(Radeon VII). But then there's rumblings of Vega 30 so who knows. ¯\_(ツ)\_/¯~~
 
-Wanting to know when Navi support comes? Run the following pointed as S/L/E:
+~~Wanting to know when Navi support comes? Run the following pointed as S/L/E:
 
-    grep -ir "731F" .
+    ~~grep -ir "731F" .~~
 
-This just checks if the 5700XT PCI ID is referenced anywhere, as of the GM there still is nothing that would hook onto a Navi GPU. And the [GPU Buyers Guide](https://khronokernel-3.gitbook.io/catalina-gpu-buyers-guide/) will be updated when Navi support is added.
+~~This just checks if the 5700XT PCI ID is referenced anywhere, as of the GM there still is nothing that would hook onto a Navi GPU. And the [GPU Buyers Guide](https://khronokernel-3.gitbook.io/catalina-gpu-buyers-guide/) will be updated when Navi support is added.~~
+
+YES! Started since 10.15.1, but got updated for better support in 10.15.2 and it's looking good. Support for RX5700, RX5700XT is NOW!
 
 **Chrome being dumb again**
 
